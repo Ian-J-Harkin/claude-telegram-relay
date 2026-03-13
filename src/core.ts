@@ -176,7 +176,7 @@ try {
 
 export async function callLLM(
   prompt: string,
-  options?: { resume?: boolean; imagePath?: string; audioPath?: string; channel?: string }
+  options?: { resume?: boolean; imagePath?: string; audioPath?: string; channel?: string; signal?: AbortSignal }
 ): Promise<string> {
   if (LLM_PROVIDER === "gemini") {
     return callGemini(prompt, options);
@@ -187,7 +187,7 @@ export async function callLLM(
 
 export async function callGemini(
   prompt: string,
-  options?: { resume?: boolean; imagePath?: string; audioPath?: string; channel?: string }
+  options?: { resume?: boolean; imagePath?: string; audioPath?: string; channel?: string; signal?: AbortSignal }
 ): Promise<string> {
   const channel = options?.channel || "telegram";
   const session = sessions[channel];
@@ -215,6 +215,11 @@ export async function callGemini(
           mimeType: uploadedFile.mimeType || "audio/ogg",
         },
       });
+    }
+
+    // Check if request was cancelled before making API call
+    if (options?.signal?.aborted) {
+      return "[CANCELLED]";
     }
 
     const response = await ai.models.generateContent({
@@ -324,7 +329,11 @@ export function buildPrompt(
       "include these tags in your response (they are processed automatically and hidden from the user):" +
       "\n[REMEMBER: fact to store]" +
       "\n[GOAL: goal text | DEADLINE: optional date]" +
-      "\n[DONE: search text for completed goal]"
+      "\n[DONE: search text for completed goal]" +
+      "\n\nACTION CONFIRMATION:" +
+      "\nWhen you are about to do something significant (send an email, schedule a meeting, update a document, " +
+      "modify data), wrap the action in an [ACTION: description] tag instead of doing it directly. " +
+      "The user will be asked to approve or skip. Only use this for actions with real side-effects, not for normal responses."
   );
 
   parts.push(`\nUser: ${userMessage}`);

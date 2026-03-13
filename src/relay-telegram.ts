@@ -144,27 +144,121 @@ bot.command("schedule", async (ctx) => {
   }
 });
 
+// ============================================================
+// LIVE PROGRESS & CONTROL
+// ============================================================
+
+// Keywords that hint at a complex query (triggers progress messages)
+const COMPLEX_KEYWORDS = [
+  "research", "summarize", "summarise", "compare", "analyze", "analyse",
+  "explain", "review", "draft", "write", "create", "plan", "evaluate",
+  "describe in detail", "break down", "list all",
+];
+
+function isComplexQuery(text: string): boolean {
+  const lower = text.toLowerCase();
+  return lower.length > 80 || COMPLEX_KEYWORDS.some(k => lower.includes(k));
+}
+
+// Track in-flight request so we can cancel it on redirect
+let currentAbort: AbortController | null = null;
+let progressMessageId: number | null = null;
+let progressChatId: number | null = null;
+
 // Text messages
 bot.on("message:text", async (ctx) => {
   const text = ctx.message.text;
   console.log(`Message: ${text.substring(0, 50)}...`);
 
+  // Mid-task redirect: if something is already in-flight, cancel it
+  if (currentAbort) {
+    console.log("Mid-task redirect: cancelling previous request.");
+    currentAbort.abort();
+    currentAbort = null;
+    // Delete the old progress message if it exists
+    if (progressMessageId && progressChatId) {
+      await bot.api.deleteMessage(progressChatId, progressMessageId).catch(() => {});
+      progressMessageId = null;
+    }
+  }
+
   await ctx.replyWithChatAction("typing");
+
+  // Show progress message for complex queries
+  const complex = isComplexQuery(text);
+  if (complex) {
+    const msg = await ctx.reply("🔍 Working on it...");
+    progressMessageId = msg.message_id;
+    progressChatId = ctx.chat.id;
+  }
 
   await saveMessage("user", text, "telegram");
 
-  const [relevantContext, memoryContext] = await Promise.all([
-    getRelevantContext(supabase, text),
-    getMemoryContext(supabase),
-  ]);
+  const abort = new AbortController();
+  currentAbort = abort;
 
-  const enrichedPrompt = buildPrompt(text, relevantContext, memoryContext);
-  const rawResponse = await callLLM(enrichedPrompt, { resume: true, channel: "telegram" });
+  try {
+    const [relevantContext, memoryContext] = await Promise.all([
+      getRelevantContext(supabase, text),
+      getMemoryContext(supabase),
+    ]);
 
-  const response = await processMemoryIntents(supabase, rawResponse);
+    const enrichedPrompt = buildPrompt(text, relevantContext, memoryContext);
+    const rawResponse = await callLLM(enrichedPrompt, {
+      resume: true,
+      channel: "telegram",
+      signal: abort.signal,
+    });
 
-  await saveMessage("assistant", response, "telegram");
-  await sendResponse(ctx, response);
+    // If cancelled by a redirect, stop here
+    if (abort.signal.aborted || rawResponse === "[CANCELLED]") {
+      console.log("Request was cancelled, skipping response.");
+      return;
+    }
+
+    const response = await processMemoryIntents(supabase, rawResponse);
+
+    // Delete progress message
+    if (progressMessageId && progressChatId) {
+      await bot.api.deleteMessage(progressChatId, progressMessageId).catch(() => {});
+      progressMessageId = null;
+    }
+
+    // Check for [ACTION:] tags — ask for confirmation instead of executing
+    const actionMatch = response.match(/\[ACTION:\s*(.+?)\]/i);
+    if (actionMatch) {
+      const actionDesc = actionMatch[1];
+      const cleanResponse = response.replace(/\[ACTION:\s*.+?\]/gi, "").trim();
+
+      // Save what Gemini wanted to do
+      await saveMessage("assistant", cleanResponse, "telegram");
+      if (cleanResponse) {
+        await sendResponse(ctx, cleanResponse);
+      }
+
+      // Send confirmation buttons
+      await ctx.reply(`⚡ *Action required:* ${actionDesc}`, {
+        parse_mode: "Markdown",
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: "✅ Approve", callback_data: `action_approve:${actionDesc.substring(0, 50)}` },
+              { text: "❌ Skip", callback_data: "action_skip" },
+            ],
+          ],
+        },
+      });
+    } else {
+      await saveMessage("assistant", response, "telegram");
+      await sendResponse(ctx, response);
+    }
+  } catch (err: any) {
+    if (err?.name === "AbortError") return;
+    console.error("Text handler error:", err);
+    await ctx.reply("Something went wrong processing your message.");
+  } finally {
+    currentAbort = null;
+  }
 });
 
 // Voice messages
@@ -284,6 +378,25 @@ bot.on("message:document", async (ctx) => {
     console.error("Document error:", error);
     await ctx.reply("Could not process document.");
   }
+});
+
+// ============================================================
+// CALLBACK QUERIES (Inline Keyboard Actions)
+// ============================================================
+
+bot.callbackQuery(/^action_approve:(.+)$/, async (ctx) => {
+  const actionDesc = ctx.match![1];
+  await ctx.answerCallbackQuery("Approved!");
+  await ctx.editMessageText(`✅ *Approved:* ${actionDesc}`, { parse_mode: "Markdown" });
+  // Log the approval
+  await saveMessage("user", `[APPROVED ACTION: ${actionDesc}]`, "telegram");
+  console.log(`Action approved: ${actionDesc}`);
+});
+
+bot.callbackQuery("action_skip", async (ctx) => {
+  await ctx.answerCallbackQuery("Skipped.");
+  await ctx.editMessageText("❌ Action skipped.");
+  console.log("Action skipped by user.");
 });
 
 // ============================================================
