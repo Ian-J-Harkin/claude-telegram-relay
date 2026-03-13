@@ -10,7 +10,6 @@
 import { Bot, Context } from "grammy";
 import { writeFile, unlink } from "fs/promises";
 import { join } from "path";
-import { transcribe } from "./transcribe.ts";
 import {
   processMemoryIntents,
   getMemoryContext,
@@ -33,7 +32,7 @@ import {
   initSession,
 } from "./core.ts";
 import { generateProfile } from "./setup-profile.ts";
-import { startScheduler } from "./scheduler.ts";
+import { startScheduler, getScheduleConfig, updateScheduleConfig } from "./scheduler.ts";
 
 // ============================================================
 // SETUP
@@ -100,6 +99,48 @@ bot.command("profile", async (ctx) => {
   } catch (error) {
     console.error("Profile generation error:", error);
     await ctx.reply("Could not generate profile. Check logs for details.");
+  }
+});
+
+// Schedule configuration command
+bot.command("schedule", async (ctx) => {
+  const text = ctx.match?.trim();
+  
+  if (!text) {
+    const config = getScheduleConfig();
+    await ctx.reply(
+      `*Current Schedule*\n\n` +
+      `Briefing: \`${config.briefingCron}\`\n` +
+      `Check-ins: ${config.checkinsEnabled ? "ON" : "OFF"}\n\n` +
+      `*Commands:*\n` +
+      `\`/schedule briefing 8:30\` — change briefing time\n` +
+      `\`/schedule checkins off\` — disable check-ins\n` +
+      `\`/schedule checkins on\` — enable check-ins`,
+      { parse_mode: "Markdown" }
+    );
+    return;
+  }
+
+  const parts = text.split(/\s+/);
+  
+  if (parts[0] === "briefing" && parts[1]) {
+    // Parse time like "8:30" or "9:00"
+    const timeMatch = parts[1].match(/^(\d{1,2}):(\d{2})$/);
+    if (!timeMatch) {
+      await ctx.reply("Use format: `/schedule briefing 8:30`", { parse_mode: "Markdown" });
+      return;
+    }
+    const newCron = `${timeMatch[2]} ${timeMatch[1]} * * 1-5`;
+    updateScheduleConfig({ briefingCron: newCron });
+    startScheduler(bot); // restart with new config
+    await ctx.reply(`✓ Briefing rescheduled to ${parts[1]} on weekdays.`);
+  } else if (parts[0] === "checkins") {
+    const enabled = parts[1] !== "off";
+    updateScheduleConfig({ checkinsEnabled: enabled });
+    startScheduler(bot); // restart with new config
+    await ctx.reply(`✓ Smart check-ins ${enabled ? "enabled" : "disabled"}.`);
+  } else {
+    await ctx.reply("Unknown option. Try `/schedule` for help.", { parse_mode: "Markdown" });
   }
 });
 
