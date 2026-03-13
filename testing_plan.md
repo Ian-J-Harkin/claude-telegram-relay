@@ -44,6 +44,12 @@ Since we bypassed Claude Code for a more direct integration, these features are 
   - `save_note` — saves a structured note to memory
 - **Extensible:** New tools can be added via `registerTool()` with a name, description, and execute function.
 
+## 8. Multi-Agent Topics (Completed in Code)
+- **Agent personas:** 5 built-in agents (General 🤖, Coder 💻, Writer ✍️, Researcher 🔍, Coach 🎯) each with a custom system prompt in `config/agents.json`.
+- **Forum topic routing:** When using a Telegram Group set to Forum mode, messages in a topic named "Coder" are handled by the Coder agent, "Writer" by the Writer, etc.
+- **`/board` command:** Runs a "board meeting" — all agents weigh in on a topic in parallel and return their unique perspectives.
+- **Extensible:** Add new agents by editing `config/agents.json`.
+
 --- 
 
 ## MANUAL TESTING CHECKLIST
@@ -90,6 +96,11 @@ Try doing each of the following inside the chat with your bot. Let me know if an
 - [ ] **Image memory:** Send a photo with the caption *"Remember this."* Then later ask *"What photos have I sent you?"* — the bot should recall the image description from memory.
 - [ ] **Web search:** Ask *"Search the web for the latest TypeScript release notes"* — the bot should use the `web_search` tool and return results.
 - [ ] **Save note:** Say *"Save a note: Meeting with Sarah moved to Thursday at 3pm"* — the bot should save it to memory.
+
+### Multi-Agent Topics
+- [ ] **View agents:** Type `/board` — confirm it lists all available agents with emojis.
+- [ ] **Board meeting:** Type `/board Should I learn Rust or Go next?` — confirm all 5 agents respond with their unique perspectives.
+- [ ] **Forum topics (optional):** If you have a Telegram Group set to Forum mode, create topics named "Coder", "Writer", etc. Send a message in each — confirm the agent persona matches the topic name.
 
 ### Background Services (Always On)
 

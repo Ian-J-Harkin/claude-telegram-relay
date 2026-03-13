@@ -177,7 +177,7 @@ try {
 
 export async function callLLM(
   prompt: string,
-  options?: { resume?: boolean; imagePath?: string; audioPath?: string; channel?: string; signal?: AbortSignal }
+  options?: { resume?: boolean; imagePath?: string; audioPath?: string; channel?: string; signal?: AbortSignal; systemPrompt?: string }
 ): Promise<string> {
   if (LLM_PROVIDER === "gemini") {
     return callGemini(prompt, options);
@@ -188,7 +188,7 @@ export async function callLLM(
 
 export async function callGemini(
   prompt: string,
-  options?: { resume?: boolean; imagePath?: string; audioPath?: string; channel?: string; signal?: AbortSignal }
+  options?: { resume?: boolean; imagePath?: string; audioPath?: string; channel?: string; signal?: AbortSignal; systemPrompt?: string }
 ): Promise<string> {
   const channel = options?.channel || "telegram";
   const session = sessions[channel];

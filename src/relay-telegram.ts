@@ -35,6 +35,7 @@ import { generateProfile } from "./setup-profile.ts";
 import { startScheduler, getScheduleConfig, updateScheduleConfig } from "./scheduler.ts";
 import { textToSpeech, cleanupTTSFile, setVoice, getVoice, getAvailableVoices } from "./tts.ts";
 import { processToolCalls } from "./tools.ts";
+import { getAgentForTopic, getAllAgents, callAgentLLM, runBoardMeeting } from "./agents.ts";
 import { InputFile } from "grammy";
 
 // ============================================================
@@ -186,6 +187,34 @@ bot.command("schedule", async (ctx) => {
   }
 });
 
+// Board meeting command
+bot.command("board", async (ctx) => {
+  const topic = ctx.match?.trim();
+  if (!topic) {
+    const agents = await getAllAgents();
+    await ctx.reply(
+      `*🏛 Board Meeting*\n\n` +
+      `Get all agents' perspectives on a topic.\n\n` +
+      `Usage: \`/board your topic here\`\n\n` +
+      `*Available agents:*\n` +
+      agents.map(a => `${a.emoji} ${a.name}`).join("\n"),
+      { parse_mode: "Markdown" }
+    );
+    return;
+  }
+
+  await ctx.reply(`🏛 Convening board meeting on: *${topic}*\nThis may take a moment...`, { parse_mode: "Markdown" });
+  await ctx.replyWithChatAction("typing");
+
+  try {
+    const result = await runBoardMeeting(topic, supabase);
+    await sendResponse(ctx, result);
+  } catch (err) {
+    console.error("Board meeting error:", err);
+    await ctx.reply("Board meeting failed. Check logs.");
+  }
+});
+
 // ============================================================
 // LIVE PROGRESS & CONTROL
 // ============================================================
@@ -211,6 +240,24 @@ let progressChatId: number | null = null;
 bot.on("message:text", async (ctx) => {
   const text = ctx.message.text;
   console.log(`Message: ${text.substring(0, 50)}...`);
+
+  // Detect forum topic and route to the appropriate agent
+  const topicId = (ctx.message as any).message_thread_id;
+  let agentOverride: Awaited<ReturnType<typeof getAgentForTopic>> | null = null;
+
+  if (topicId) {
+    // In a forum topic — try to get the topic name
+    try {
+      // grammY doesn't expose topic name directly, but we can check the chat
+      // For now, use the topicId to look up in a simple cache
+      // The agent name can also be set by the user via topic name
+      const forumTopicName = (ctx.message as any).reply_to_message?.forum_topic_created?.name;
+      if (forumTopicName) {
+        agentOverride = await getAgentForTopic(forumTopicName);
+        console.log(`Forum topic "${forumTopicName}" → Agent: ${agentOverride.name}`);
+      }
+    } catch {}
+  }
 
   // Mid-task redirect: if something is already in-flight, cancel it
   if (currentAbort) {
@@ -245,12 +292,20 @@ bot.on("message:text", async (ctx) => {
       getMemoryContext(supabase),
     ]);
 
-    const enrichedPrompt = buildPrompt(text, relevantContext, memoryContext);
-    const rawResponse = await callLLM(enrichedPrompt, {
-      resume: true,
-      channel: "telegram",
-      signal: abort.signal,
-    });
+    let rawResponse: string;
+
+    if (agentOverride) {
+      // Forum topic — use the matched agent's persona
+      rawResponse = await callAgentLLM(agentOverride, text, supabase);
+    } else {
+      // Normal chat — use default system prompt
+      const enrichedPrompt = buildPrompt(text, relevantContext, memoryContext);
+      rawResponse = await callLLM(enrichedPrompt, {
+        resume: true,
+        channel: "telegram",
+        signal: abort.signal,
+      });
+    }
 
     // If cancelled by a redirect, stop here
     if (abort.signal.aborted || rawResponse === "[CANCELLED]") {
