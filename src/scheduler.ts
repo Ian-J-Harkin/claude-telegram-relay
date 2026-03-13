@@ -1,7 +1,8 @@
 import cron from "node-cron";
-import { Bot } from "grammy";
+import { Bot, InputFile } from "grammy";
 import { supabase, callLLM, buildPrompt, saveMessage } from "./core.ts";
 import { getMemoryContext } from "./memory.ts";
+import { textToSpeech, cleanupTTSFile } from "./tts.ts";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 // ============================================================
@@ -200,6 +201,21 @@ export function startScheduler(bot: Bot) {
           const response = await callLLM(prompt, { channel: "telegram" });
           if (response.trim() !== "SKIP") {
             await bot.api.sendMessage(TELEGRAM_USER_ID, response);
+
+            // Proactive voice alert: if any trigger mentions a deadline <4h, also send as voice
+            const hasUrgentDeadline = triggers.reasons.some(r => r.includes("hours") && parseInt(r.match(/(\d+)/)?.[1] || "99") <= 4);
+            if (hasUrgentDeadline) {
+              try {
+                const audioPath = await textToSpeech(response);
+                if (audioPath) {
+                  await bot.api.sendAudio(TELEGRAM_USER_ID, new InputFile(audioPath), { title: "Urgent Check-in" });
+                  await cleanupTTSFile(audioPath);
+                  console.log("Sent proactive voice alert for urgent deadline.");
+                }
+              } catch (ttsErr) {
+                console.error("Proactive voice alert failed:", ttsErr);
+              }
+            }
           } else {
             console.log("Smart Check-in: LLM decided to skip despite triggers.");
           }

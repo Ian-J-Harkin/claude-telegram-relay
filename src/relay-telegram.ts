@@ -33,6 +33,14 @@ import {
 } from "./core.ts";
 import { generateProfile } from "./setup-profile.ts";
 import { startScheduler, getScheduleConfig, updateScheduleConfig } from "./scheduler.ts";
+import { textToSpeech, cleanupTTSFile, setVoice, getVoice, getAvailableVoices } from "./tts.ts";
+import { InputFile } from "grammy";
+
+// ============================================================
+// VOICE REPLY STATE
+// ============================================================
+
+let voiceReplyEnabled = (process.env.VOICE_REPLY_ENABLED || "false") === "true";
 
 // ============================================================
 // SETUP
@@ -99,6 +107,39 @@ bot.command("profile", async (ctx) => {
   } catch (error) {
     console.error("Profile generation error:", error);
     await ctx.reply("Could not generate profile. Check logs for details.");
+  }
+});
+
+// Voice reply toggle command
+bot.command("voice", async (ctx) => {
+  const arg = ctx.match?.trim().toLowerCase();
+
+  if (!arg) {
+    await ctx.reply(
+      `*Voice Replies*\n\n` +
+      `Status: ${voiceReplyEnabled ? "ON 🔊" : "OFF 🔇"}\n` +
+      `Voice: ${getVoice()}\n\n` +
+      `*Commands:*\n` +
+      `\`/voice on\` — enable voice replies\n` +
+      `\`/voice off\` — disable voice replies\n` +
+      `\`/voice [name]\` — change voice (${getAvailableVoices().join(", ")})`,
+      { parse_mode: "Markdown" }
+    );
+    return;
+  }
+
+  if (arg === "on") {
+    voiceReplyEnabled = true;
+    await ctx.reply("🔊 Voice replies enabled. I'll respond with audio after each message.");
+  } else if (arg === "off") {
+    voiceReplyEnabled = false;
+    await ctx.reply("🔇 Voice replies disabled.");
+  } else if (setVoice(arg)) {
+    await ctx.reply(`✓ Voice changed to ${getVoice()}.`);
+  } else {
+    await ctx.reply(
+      `Unknown voice. Available: ${getAvailableVoices().join(", ")}`,
+    );
   }
 });
 
@@ -284,8 +325,16 @@ bot.on("message:voice", async (ctx) => {
       getMemoryContext(supabase),
     ]);
 
+    // Call-to-task: long voice messages (>15s) are treated as task dumps
+    const isTaskDump = voice.duration > 15;
+    const voiceInstruction = isTaskDump
+      ? `[The user sent a long voice message (${voice.duration}s) as a task dump. ` +
+        `Transcribe it, then extract all actionable items. For each task, include a [GOAL: task description] tag. ` +
+        `Confirm the list of extracted tasks back to the user.]`
+      : `[The user sent a voice message. Please transcribe and respond to it.]`;
+
     const enrichedPrompt = buildPrompt(
-      `[The user sent a voice message. Please transcribe and respond to it.]`,
+      voiceInstruction,
       relevantContext,
       memoryContext
     );
@@ -407,6 +456,22 @@ async function sendResponse(ctx: Context, response: string): Promise<void> {
   const chunks = splitResponse(response, 4000);
   for (const chunk of chunks) {
     await ctx.reply(chunk);
+  }
+
+  // If voice replies are enabled, also send as audio
+  if (voiceReplyEnabled) {
+    try {
+      const audioPath = await textToSpeech(response);
+      if (audioPath) {
+        await ctx.replyWithAudio(new InputFile(audioPath), {
+          title: "Voice Reply",
+        });
+        await cleanupTTSFile(audioPath);
+      }
+    } catch (err) {
+      console.error("Voice reply TTS error:", err);
+      // Silently fail — text was already sent
+    }
   }
 }
 

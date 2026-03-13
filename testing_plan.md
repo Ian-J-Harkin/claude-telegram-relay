@@ -31,6 +31,12 @@ Since we bypassed Claude Code for a more direct integration, these features are 
 - **Mid-task redirect:** Sending a new message while Gemini is thinking cancels the previous request (via AbortController) and starts the new one.
 - **[ACTION:] confirmation:** When Gemini suggests a side-effect action, it uses `[ACTION: description]` tags. The user sees inline buttons (✅ Approve / ❌ Skip) and must confirm before anything executes.
 
+## 6. Voice Replies & Proactive Voice (Completed in Code)
+- **Voice replies:** When enabled via `/voice on`, the bot sends an audio version of every response alongside the text. Uses Gemini's native TTS model (`gemini-2.5-flash-preview-tts`) — no additional API keys needed.
+- **Voice selection:** 5 built-in voices (Kore, Charon, Fenrir, Aoede, Puck) configurable via `/voice [name]`.
+- **Call-to-task:** Voice messages longer than 15 seconds are treated as "task dumps" — Gemini extracts actionable items and saves each as a `[GOAL:]` automatically.
+- **Proactive voice alerts:** When a scheduled check-in detects an urgent deadline (<4 hours away), the bot sends the check-in as a voice message in addition to text.
+
 --- 
 
 ## MANUAL TESTING CHECKLIST
@@ -64,6 +70,14 @@ Try doing each of the following inside the chat with your bot. Let me know if an
 - [ ] **Progress message:** Send a complex query like *"Research the best practices for TypeScript project structure and summarize them"* — you should see "🔍 Working on it..." appear and auto-delete once the answer arrives.
 - [ ] **Mid-task redirect:** Send a complex query, then quickly send *"Actually, just tell me a joke instead."* — you should get only the joke, not the original response.
 - [ ] **Action confirmation:** Ask the bot to do something like *"Draft an email to my colleague about the project deadline and send it."* — you should see inline ✅ Approve / ❌ Skip buttons.
+
+### Voice Replies
+- [ ] **Check status:** Type `/voice` — confirm it shows current status (ON/OFF) and voice name.
+- [ ] **Enable voice:** Type `/voice on` — confirm it responds "🔊 Voice replies enabled."
+- [ ] **Test voice reply:** Send any text message — confirm you receive both a text reply AND an audio file.
+- [ ] **Change voice:** Type `/voice puck` — confirm it responds "✓ Voice changed to Puck."
+- [ ] **Disable voice:** Type `/voice off` — confirm audio stops.
+- [ ] **Call-to-task:** Record a voice message longer than 15 seconds describing several tasks. Confirm the bot transcribes and extracts goals from it.
 
 ### Background Services (Always On)
 
