@@ -50,6 +50,33 @@ Since we bypassed Claude Code for a more direct integration, these features are 
 - **`/board` command:** Runs a "board meeting" — all agents weigh in on a topic in parallel and return their unique perspectives.
 - **Extensible:** Add new agents by editing `config/agents.json`.
 
+## 9. VPS Deployment (TODO — Deferred)
+
+**Status:** On hold. The bot currently runs locally and that works for personal use.
+
+### What it would include
+- [ ] **Deploy script** (`setup/deploy-vps.sh`) — automate: clone repo, install Bun, copy `.env`, install deps, set up PM2 with auto-start on reboot
+- [ ] **Model tier routing** — env var `GEMINI_MODEL_TIER` to switch between Flash (fast/cheap) and Pro (smarter/expensive) based on query complexity
+- [ ] **`/usage` command** — track approximate API token usage per day/month and display in Telegram
+
+### Pros
+- ✅ Bot runs 24/7 without your machine needing to stay on
+- ✅ Much lower latency (cloud server closer to Telegram/Gemini endpoints)
+- ✅ Survives reboots, power outages, ISP issues automatically
+- ✅ Professional deployment — ready for production use
+
+### Cons
+- ❌ Adds ~$5-10/month for a VPS (Hetzner, DigitalOcean, Linode, etc.)
+- ❌ Another system to maintain (security updates, monitoring)
+- ❌ Slightly more complex debugging (SSH vs local terminal)
+- ❌ Secrets management on a remote server (`.env` file)
+
+### Things to consider before building
+1. **Is it needed yet?** Your bot runs fine locally via `bun run src/relay-telegram.ts`. If your machine is generally on, this works fine for personal use.
+2. **VPS vs platform** — a VPS script works anywhere (Hetzner, DO, Linode), but platforms like Railway or Fly.io offer simpler deploys. Worth deciding which.
+3. **Model tier routing** — currently we use `gemini-2.5-flash` for everything. Only add Pro routing if you start hitting quality limits on complex prompts.
+4. **Git simplifies deploys** — with the repo on GitHub, you can just `git pull && pm2 restart` on the VPS. The deploy script mainly automates first-time setup.
+
 --- 
 
 ## MANUAL TESTING CHECKLIST
