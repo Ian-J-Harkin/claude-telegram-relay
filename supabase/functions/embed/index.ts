@@ -2,10 +2,10 @@
  * Auto-Embedding Edge Function
  *
  * Called via database webhook on INSERT to messages/memory tables.
- * Generates an OpenAI embedding and stores it on the row.
+ * Generates a Gemini embedding and stores it on the row.
  *
  * Secrets required:
- *   OPENAI_API_KEY — stored in Supabase Edge Function secrets
+ *   GEMINI_API_KEY — stored in Supabase Edge Function secrets
  *
  * SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are auto-injected by Supabase.
  */
@@ -25,34 +25,35 @@ Deno.serve(async (req) => {
       return new Response("Already embedded", { status: 200 });
     }
 
-    const openaiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openaiKey) {
-      return new Response("OPENAI_API_KEY not configured", { status: 500 });
+    const geminiKey = Deno.env.get("GEMINI_API_KEY");
+    if (!geminiKey) {
+      return new Response("GEMINI_API_KEY not configured", { status: 500 });
     }
 
-    // Generate embedding via OpenAI
+    // Generate embedding via Gemini
     const embeddingResponse = await fetch(
-      "https://api.openai.com/v1/embeddings",
+      `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${geminiKey}`,
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${openaiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "text-embedding-3-small",
-          input: record.content,
+          model: "models/text-embedding-004",
+          content: {
+            parts: [{ text: record.content }]
+          }
         }),
       }
     );
 
     if (!embeddingResponse.ok) {
       const err = await embeddingResponse.text();
-      return new Response(`OpenAI error: ${err}`, { status: 500 });
+      return new Response(`Gemini error: ${err}`, { status: 500 });
     }
 
-    const { data } = await embeddingResponse.json();
-    const embedding = data[0].embedding;
+    const { embedding: geminiEmbedding } = await embeddingResponse.json();
+    const embedding = geminiEmbedding.values;
 
     // Update the row with the embedding
     const supabase = createClient(

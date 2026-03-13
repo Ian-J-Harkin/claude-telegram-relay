@@ -1,0 +1,278 @@
+/**
+ * Claude Code Telegram Relay
+ *
+ * Telegram frontend for the Claude relay.
+ * Imports shared logic from core.ts.
+ *
+ * Run: bun run src/relay-telegram.ts
+ */
+
+import { Bot, Context } from "grammy";
+import { writeFile, unlink } from "fs/promises";
+import { join } from "path";
+import { transcribe } from "./transcribe.ts";
+import {
+  processMemoryIntents,
+  getMemoryContext,
+  getRelevantContext,
+} from "./memory.ts";
+import {
+  BOT_TOKEN,
+  ALLOWED_USER_ID,
+  UPLOADS_DIR,
+  supabase,
+  callLLM,
+  buildPrompt,
+  splitResponse,
+  saveMessage,
+  acquireLock,
+  releaseLock,
+  setupLockCleanup,
+  ensureDirectories,
+  PROJECT_DIR,
+  initSession,
+} from "./core.ts";
+import { generateProfile } from "./setup-profile.ts";
+import { startScheduler } from "./scheduler.ts";
+
+// ============================================================
+// SETUP
+// ============================================================
+
+if (!BOT_TOKEN) {
+  console.error("TELEGRAM_BOT_TOKEN not set!");
+  console.log("\nTo set up:");
+  console.log("1. Message @BotFather on Telegram");
+  console.log("2. Create a new bot with /newbot");
+  console.log("3. Copy the token to .env");
+  process.exit(1);
+}
+
+await ensureDirectories();
+await initSession("telegram");
+setupLockCleanup("telegram");
+
+if (!(await acquireLock("telegram"))) {
+  console.error("Could not acquire lock. Another instance may be running.");
+  process.exit(1);
+}
+
+const bot = new Bot(BOT_TOKEN);
+
+// ============================================================
+// SECURITY: Only respond to authorized user
+// ============================================================
+
+bot.use(async (ctx, next) => {
+  const userId = ctx.from?.id.toString();
+
+  if (ALLOWED_USER_ID && userId !== ALLOWED_USER_ID) {
+    console.log(`Unauthorized: ${userId}`);
+    await ctx.reply("This bot is private.");
+    return;
+  }
+
+  await next();
+});
+
+// ============================================================
+// MESSAGE HANDLERS
+// ============================================================
+
+// Profile setup command
+bot.command("profile", async (ctx) => {
+  const text = ctx.match;
+  if (!text) {
+    await ctx.reply(
+      "To build your profile, please provide some background information after the command.\n\n" +
+      "Example:\n`/profile I am Ian, my timezone is UTC, I work as a software engineer, and I prefer concise communication.`",
+      { parse_mode: "Markdown" }
+    );
+    return;
+  }
+  
+  await ctx.replyWithChatAction("typing");
+  await ctx.reply("Generating your profile...");
+  
+  try {
+    const profileMarkdown = await generateProfile(text);
+    await ctx.reply(`*Profile Updated!*\n\n${profileMarkdown}`, { parse_mode: "Markdown" });
+  } catch (error) {
+    console.error("Profile generation error:", error);
+    await ctx.reply("Could not generate profile. Check logs for details.");
+  }
+});
+
+// Text messages
+bot.on("message:text", async (ctx) => {
+  const text = ctx.message.text;
+  console.log(`Message: ${text.substring(0, 50)}...`);
+
+  await ctx.replyWithChatAction("typing");
+
+  await saveMessage("user", text, "telegram");
+
+  const [relevantContext, memoryContext] = await Promise.all([
+    getRelevantContext(supabase, text),
+    getMemoryContext(supabase),
+  ]);
+
+  const enrichedPrompt = buildPrompt(text, relevantContext, memoryContext);
+  const rawResponse = await callLLM(enrichedPrompt, { resume: true, channel: "telegram" });
+
+  const response = await processMemoryIntents(supabase, rawResponse);
+
+  await saveMessage("assistant", response, "telegram");
+  await sendResponse(ctx, response);
+});
+
+// Voice messages
+bot.on("message:voice", async (ctx) => {
+  const voice = ctx.message.voice;
+  console.log(`Voice message: ${voice.duration}s`);
+  await ctx.replyWithChatAction("typing");
+
+  try {
+    const file = await ctx.getFile();
+    const url = `https://api.telegram.org/file/bot${BOT_TOKEN}/${file.file_path}`;
+    const timestamp = Date.now();
+    const filePath = join(UPLOADS_DIR, `voice_${timestamp}.ogg`);
+
+    const response = await fetch(url);
+    const buffer = await response.arrayBuffer();
+    await writeFile(filePath, Buffer.from(buffer));
+
+    await saveMessage("user", `[Voice message sent, duration: ${voice.duration}s]`, "telegram");
+
+    const [relevantContext, memoryContext] = await Promise.all([
+      getRelevantContext(supabase, "voice message"),
+      getMemoryContext(supabase),
+    ]);
+
+    const enrichedPrompt = buildPrompt(
+      `[The user sent a voice message. Please transcribe and respond to it.]`,
+      relevantContext,
+      memoryContext
+    );
+    const rawResponse = await callLLM(enrichedPrompt, { 
+      resume: true, 
+      channel: "telegram",
+      audioPath: filePath 
+    });
+    
+    await unlink(filePath).catch(() => {});
+    
+    const claudeResponse = await processMemoryIntents(supabase, rawResponse);
+
+    await saveMessage("assistant", claudeResponse, "telegram");
+    await sendResponse(ctx, claudeResponse);
+  } catch (error) {
+    console.error("Voice error:", error);
+    await ctx.reply("Could not process voice message. Check logs for details.");
+  }
+});
+
+// Photos/Images
+bot.on("message:photo", async (ctx) => {
+  console.log("Image received");
+  await ctx.replyWithChatAction("typing");
+
+  try {
+    const photos = ctx.message.photo;
+    const photo = photos[photos.length - 1];
+    const file = await ctx.api.getFile(photo.file_id);
+
+    const timestamp = Date.now();
+    const filePath = join(UPLOADS_DIR, `image_${timestamp}.jpg`);
+
+    const response = await fetch(
+      `https://api.telegram.org/file/bot${BOT_TOKEN}/${file.file_path}`
+    );
+    const buffer = await response.arrayBuffer();
+    await writeFile(filePath, Buffer.from(buffer));
+
+    const caption = ctx.message.caption || "Analyze this image.";
+    const prompt = `[Image: ${filePath}]\n\n${caption}`;
+
+    await saveMessage("user", `[Image]: ${caption}`, "telegram");
+
+    const claudeResponse = await callLLM(prompt, { resume: true, channel: "telegram" });
+
+    await unlink(filePath).catch(() => {});
+
+    const cleanResponse = await processMemoryIntents(supabase, claudeResponse);
+    await saveMessage("assistant", cleanResponse, "telegram");
+    await sendResponse(ctx, cleanResponse);
+  } catch (error) {
+    console.error("Image error:", error);
+    await ctx.reply("Could not process image.");
+  }
+});
+
+// Documents
+bot.on("message:document", async (ctx) => {
+  const doc = ctx.message.document;
+  console.log(`Document: ${doc.file_name}`);
+  await ctx.replyWithChatAction("typing");
+
+  try {
+    const file = await ctx.getFile();
+    const timestamp = Date.now();
+    const fileName = doc.file_name || `file_${timestamp}`;
+    const filePath = join(UPLOADS_DIR, `${timestamp}_${fileName}`);
+
+    const response = await fetch(
+      `https://api.telegram.org/file/bot${BOT_TOKEN}/${file.file_path}`
+    );
+    const buffer = await response.arrayBuffer();
+    await writeFile(filePath, Buffer.from(buffer));
+
+    const caption = ctx.message.caption || `Analyze: ${doc.file_name}`;
+    const prompt = `[File: ${filePath}]\n\n${caption}`;
+
+    await saveMessage("user", `[Document: ${doc.file_name}]: ${caption}`, "telegram");
+
+    const claudeResponse = await callLLM(prompt, { resume: true, channel: "telegram" });
+
+    await unlink(filePath).catch(() => {});
+
+    const cleanResponse = await processMemoryIntents(supabase, claudeResponse);
+    await saveMessage("assistant", cleanResponse, "telegram");
+    await sendResponse(ctx, cleanResponse);
+  } catch (error) {
+    console.error("Document error:", error);
+    await ctx.reply("Could not process document.");
+  }
+});
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+async function sendResponse(ctx: Context, response: string): Promise<void> {
+  const chunks = splitResponse(response, 4000);
+  for (const chunk of chunks) {
+    await ctx.reply(chunk);
+  }
+}
+
+// ============================================================
+// START
+// ============================================================
+
+console.log("Starting Claude Telegram Relay...");
+console.log(`Authorized user: ${ALLOWED_USER_ID || "ANY (not recommended)"}`);
+console.log(`Project directory: ${PROJECT_DIR || "(relay working directory)"}`);
+
+bot.catch((err) => {
+  console.error("Error in telegram bot:", err);
+});
+
+// Start background cron jobs
+startScheduler(bot);
+
+bot.start({
+  onStart: () => {
+    console.log("Bot is running!");
+  },
+});

@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS messages (
   content TEXT NOT NULL,
   channel TEXT DEFAULT 'telegram',
   metadata JSONB DEFAULT '{}',
-  embedding VECTOR(1536) -- For semantic search (optional)
+  embedding VECTOR(768) -- For semantic search (optional)
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at DESC);
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS memory (
   completed_at TIMESTAMPTZ,
   priority INTEGER DEFAULT 0,
   metadata JSONB DEFAULT '{}',
-  embedding VECTOR(1536)
+  embedding VECTOR(768)
 );
 
 CREATE INDEX IF NOT EXISTS idx_memory_type ON memory(type);
@@ -134,7 +134,7 @@ $$ LANGUAGE plpgsql;
 
 -- Match messages by embedding similarity
 CREATE OR REPLACE FUNCTION match_messages(
-  query_embedding VECTOR(1536),
+  query_embedding VECTOR(768),
   match_threshold FLOAT DEFAULT 0.7,
   match_count INT DEFAULT 10
 )
@@ -163,7 +163,7 @@ $$ LANGUAGE plpgsql;
 
 -- Match memory entries by embedding similarity
 CREATE OR REPLACE FUNCTION match_memory(
-  query_embedding VECTOR(1536),
+  query_embedding VECTOR(768),
   match_threshold FLOAT DEFAULT 0.7,
   match_count INT DEFAULT 10
 )

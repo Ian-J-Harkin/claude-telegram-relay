@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "bun run src/relay.ts",
-    "dev": "bun run --watch src/relay.ts",
+    "start": "bun run src/relay-telegram.ts",
+    "dev": "bun run --watch src/relay-telegram.ts",
+    "start:whatsapp": "bun run src/relay-whatsapp.ts",
+    "dev:whatsapp": "bun run --watch src/relay-whatsapp.ts",
     "setup": "bun run setup/install.ts",
     "test:telegram": "bun run setup/test-telegram.ts",
+    "test:whatsapp": "bun run setup/test-whatsapp.ts",
     "test:supabase": "bun run setup/test-supabase.ts",
     "test:voice": "bun run setup/test-voice.ts",
     "setup:launchd": "bun run setup/configure-launchd.ts",
@@ -14,11 +17,17 @@
     "setup:verify": "bun run setup/verify.ts"
   },
   "dependencies": {
+    "@google/genai": "^1.45.0",
     "@supabase/supabase-js": "^2.45.0",
     "grammy": "^1.21.1",
-    "groq-sdk": "^0.8.0"
+    "groq-sdk": "^0.8.0",
+    "node-cron": "^4.2.1",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.26.0"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/node-cron": "^3.0.11",
+    "@types/qrcode-terminal": "^0.12.2"
   }
 }
