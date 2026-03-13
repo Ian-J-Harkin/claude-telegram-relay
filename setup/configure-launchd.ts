@@ -127,30 +127,9 @@ interface ServiceConfig {
 const SERVICES: Record<string, ServiceConfig> = {
   relay: {
     label: "com.claude.telegram-relay",
-    script: "src/relay.ts",
+    script: "src/relay-telegram.ts",
     keepAlive: true,
     description: "Main bot (always running, restarts on crash)",
-  },
-  checkin: {
-    label: "com.claude.smart-checkin",
-    script: "examples/smart-checkin.ts",
-    keepAlive: false,
-    calendarIntervals: [
-      { Hour: 9, Minute: 0 },
-      { Hour: 10, Minute: 30 },
-      { Hour: 12, Minute: 0 },
-      { Hour: 14, Minute: 0 },
-      { Hour: 16, Minute: 0 },
-      { Hour: 18, Minute: 0 },
-    ],
-    description: "Smart check-ins (runs during work hours)",
-  },
-  briefing: {
-    label: "com.claude.morning-briefing",
-    script: "examples/morning-briefing.ts",
-    keepAlive: false,
-    calendarIntervals: [{ Hour: 9, Minute: 0 }],
-    description: "Morning briefing (daily at 9am)",
   },
 };
 
