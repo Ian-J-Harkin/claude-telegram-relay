@@ -21,6 +21,16 @@ Since we bypassed Claude Code for a more direct integration, these features are 
 - **Goal:** Make the bot "Always On" running quietly in the background, restarting automatically on crash or reboot.
 - **What was done:** Simplified the `setup/configure-services.ts` (Windows/Linux) and `setup/configure-launchd.ts` (macOS) scripts to run a single `claude-telegram-relay` PM2 process. Since `node-cron` is already built into the relay, the scheduler runs automatically inside the same process — no separate checkin or briefing scripts needed.
 
+## 4. Smarter Proactive AI (Completed in Code)
+- **Decision framework:** Check-ins now evaluate 4 triggers before calling Gemini — deadline proximity (<48h), active goal count (≥3), user message activity today, and time since last bot message. If no triggers fire, the LLM call is skipped entirely.
+- **Enriched briefings:** Morning briefings now include deadline status (OVERDUE / DUE TODAY / Xh left).
+- **`/schedule` command:** View current config, change briefing time (`/schedule briefing 8:30`), or toggle check-ins (`/schedule checkins off`).
+
+## 5. Live Progress & Control (Completed in Code)
+- **Progress messages:** Complex queries show a "🔍 Working on it..." message that auto-deletes when the response arrives. Simple messages respond instantly.
+- **Mid-task redirect:** Sending a new message while Gemini is thinking cancels the previous request (via AbortController) and starts the new one.
+- **[ACTION:] confirmation:** When Gemini suggests a side-effect action, it uses `[ACTION: description]` tags. The user sees inline buttons (✅ Approve / ❌ Skip) and must confirm before anything executes.
+
 --- 
 
 ## MANUAL TESTING CHECKLIST
@@ -44,6 +54,16 @@ Try doing each of the following inside the chat with your bot. Let me know if an
 - [ ] **Tell it a fact:** Say "I live in Berlin" or "My daughter's name is Mija." Wait for a response.
 - [ ] **Set a goal:** Say "My goal is to launch my website by Friday." Wait for a response.
 - [ ] **Recall meaning/semantic search:** Open a *new* chat message later (or close the app and come back), and ask "What did we talk about yesterday?" or "Do you remember where I live?" Observe if it correctly queries Supabase and recalls the facts.
+
+### Smarter Proactive AI
+- [ ] **View schedule:** Type `/schedule` — confirm it shows current briefing time and check-in status.
+- [ ] **Change briefing time:** Type `/schedule briefing 8:30` — confirm it responds with "✓ Briefing rescheduled to 8:30 on weekdays."
+- [ ] **Toggle check-ins:** Type `/schedule checkins off` — confirm response. Then `/schedule checkins on` to re-enable.
+
+### Live Progress & Control
+- [ ] **Progress message:** Send a complex query like *"Research the best practices for TypeScript project structure and summarize them"* — you should see "🔍 Working on it..." appear and auto-delete once the answer arrives.
+- [ ] **Mid-task redirect:** Send a complex query, then quickly send *"Actually, just tell me a joke instead."* — you should get only the joke, not the original response.
+- [ ] **Action confirmation:** Ask the bot to do something like *"Draft an email to my colleague about the project deadline and send it."* — you should see inline ✅ Approve / ❌ Skip buttons.
 
 ### Background Services (Always On)
 
