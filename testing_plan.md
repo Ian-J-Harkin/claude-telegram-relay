@@ -37,6 +37,13 @@ Since we bypassed Claude Code for a more direct integration, these features are 
 - **Call-to-task:** Voice messages longer than 15 seconds are treated as "task dumps" — Gemini extracts actionable items and saves each as a `[GOAL:]` automatically.
 - **Proactive voice alerts:** When a scheduled check-in detects an urgent deadline (<4 hours away), the bot sends the check-in as a voice message in addition to text.
 
+## 7. Image Memory & Tool Integrations (Completed in Code)
+- **Image memory:** When you send a photo, Gemini's description is saved to Supabase `memory` table (type: `image`) with the Telegram `file_id` as metadata. Ask about past images weeks later — the bot finds them by meaning.
+- **Tools framework:** Plugin-based system in `src/tools.ts`. Gemini uses `[TOOL: name | args]` tags to invoke tools. Two built-in tools:
+  - `web_search` — searches DuckDuckGo for current information
+  - `save_note` — saves a structured note to memory
+- **Extensible:** New tools can be added via `registerTool()` with a name, description, and execute function.
+
 --- 
 
 ## MANUAL TESTING CHECKLIST
@@ -78,6 +85,11 @@ Try doing each of the following inside the chat with your bot. Let me know if an
 - [ ] **Change voice:** Type `/voice puck` — confirm it responds "✓ Voice changed to Puck."
 - [ ] **Disable voice:** Type `/voice off` — confirm audio stops.
 - [ ] **Call-to-task:** Record a voice message longer than 15 seconds describing several tasks. Confirm the bot transcribes and extracts goals from it.
+
+### Image Memory & Tools
+- [ ] **Image memory:** Send a photo with the caption *"Remember this."* Then later ask *"What photos have I sent you?"* — the bot should recall the image description from memory.
+- [ ] **Web search:** Ask *"Search the web for the latest TypeScript release notes"* — the bot should use the `web_search` tool and return results.
+- [ ] **Save note:** Say *"Save a note: Meeting with Sarah moved to Thursday at 3pm"* — the bot should save it to memory.
 
 ### Background Services (Always On)
 

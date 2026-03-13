@@ -12,6 +12,7 @@ import { unlinkSync } from "fs";
 import { join, dirname } from "path";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { GoogleGenAI } from "@google/genai";
+import { getToolDescriptions } from "./tools.ts";
 
 export const PROJECT_ROOT = dirname(dirname(import.meta.path));
 
@@ -333,7 +334,14 @@ export function buildPrompt(
       "\n\nACTION CONFIRMATION:" +
       "\nWhen you are about to do something significant (send an email, schedule a meeting, update a document, " +
       "modify data), wrap the action in an [ACTION: description] tag instead of doing it directly. " +
-      "The user will be asked to approve or skip. Only use this for actions with real side-effects, not for normal responses."
+      "The user will be asked to approve or skip. Only use this for actions with real side-effects, not for normal responses." +
+      "\n\nTOOL USAGE:" +
+      "\nYou have access to tools. To use a tool, include [TOOL: tool_name | arguments] in your response. " +
+      "The tool will execute and the result will replace the tag in the message sent to the user." +
+      "\n" + getToolDescriptions() +
+      "\n\nIMAGE MEMORY:" +
+      "\nWhen the user asks about a photo or image they sent previously, check the memory context for entries " +
+      "with type 'image'. These contain AI-generated descriptions of past images the user has sent."
   );
 
   parts.push(`\nUser: ${userMessage}`);

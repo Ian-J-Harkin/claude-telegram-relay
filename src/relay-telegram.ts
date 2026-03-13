@@ -34,6 +34,7 @@ import {
 import { generateProfile } from "./setup-profile.ts";
 import { startScheduler, getScheduleConfig, updateScheduleConfig } from "./scheduler.ts";
 import { textToSpeech, cleanupTTSFile, setVoice, getVoice, getAvailableVoices } from "./tts.ts";
+import { processToolCalls } from "./tools.ts";
 import { InputFile } from "grammy";
 
 // ============================================================
@@ -257,7 +258,10 @@ bot.on("message:text", async (ctx) => {
       return;
     }
 
-    const response = await processMemoryIntents(supabase, rawResponse);
+    let response = await processMemoryIntents(supabase, rawResponse);
+
+    // Process [TOOL:] tags — execute tools and insert their output
+    response = await processToolCalls(response, supabase);
 
     // Delete progress message
     if (progressMessageId && progressChatId) {
@@ -385,6 +389,21 @@ bot.on("message:photo", async (ctx) => {
     await unlink(filePath).catch(() => {});
 
     const cleanResponse = await processMemoryIntents(supabase, claudeResponse);
+
+    // IMAGE MEMORY: save the AI's description to Supabase for future recall
+    if (supabase) {
+      try {
+        await supabase.from("memory").insert({
+          type: "image",
+          content: `Image from ${new Date().toLocaleDateString()}: ${cleanResponse.substring(0, 500)}`,
+          metadata: { telegram_file_id: photo.file_id, caption },
+        });
+        console.log("Image description saved to memory.");
+      } catch (memErr) {
+        console.error("Image memory save error:", memErr);
+      }
+    }
+
     await saveMessage("assistant", cleanResponse, "telegram");
     await sendResponse(ctx, cleanResponse);
   } catch (error) {
