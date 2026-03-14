@@ -28,3 +28,8 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+hybrid_and_routing_implementation_plan.md
+.pm2/
+supabase/.temp/
+compile_errors.txt
+error.txt

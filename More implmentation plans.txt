@@ -1,0 +1,173 @@
+
+Autonomee
+
+Course / Telegram Bot Course / Module 7 – Voice & Calls
+Module 7 – Voice & Calls
+~10 min read
+07 // VOICE & CALLS
+Talk to Your AI Like a Person
+Hold the microphone button in Telegram, speak naturally, let go. Your bot transcribes what you said, processes it through Claude, and responds with a natural voice. No typing. No reading. Works in any language.
+
+This changes how you use your assistant — especially when you are walking, driving, or have your hands full.
+
+Phone Calls
+Your bot can call you through Telegram and have a real voice conversation. Urgent check-ins when something is time-sensitive. Morning briefings delivered by voice. Complex discussions where typing would be slow.
+
+Call-to-Task
+This is the feature that changes everything. You call your bot, tell it what you need in natural language, and hang up.
+
+Your bot analyzes the call, detects the tasks, and starts executing — automatically. You see live progress updates in Telegram as it works. When it needs your input, it asks with buttons right in the chat.
+
+You gave a verbal instruction. Your AI turned it into action. You watched it happen. And you stayed in control the entire time.
+
+We add new features regularly based on what community members are building. Voice and call features are actively evolving. Join the Autonomee community to stay on top of updates.
+
+
+Autonomee
+
+Course / Telegram Bot Course / Module 8 – Live Progress & Control
+Module 8 – Live Progress & Control
+~10 min read
+08 // LIVE PROGRESS & CONTROL
+See What Your AI Is Doing — In Real Time
+Send a complex task and actually see what happens. No spinning wheel. No “typing…” for three minutes. Your bot shows you each step as it works — what it is reading, searching, drafting — right in Telegram.
+
+When it finishes, the progress messages disappear and you get the clean final answer. Simple messages still respond instantly. The system knows the difference.
+
+Change Direction Mid-Task
+Watching your bot go in the wrong direction? Just send another message. “Actually, focus on the last two weeks only.” Your bot reads the new instruction, adjusts, and keeps going. No restart. No lost work.
+
+Confirmation Before Acting
+When your bot is about to do something important — send an email, update a document, schedule a meeting — it asks you first. Buttons right in Telegram: approve, edit, or skip. One tap.
+
+You stay in the loop without micromanaging every step.
+
+This feature was built because our community asked for it. The Autonomee community shapes what gets built.
+
+
+Autonomee
+
+Course / Telegram Bot Course / Module 9 – Proactive AI
+Module 9 – Proactive AI
+~10 min read
+09 // PROACTIVE AI
+Your AI Reaches Out First
+The free version includes basic check-ins and morning briefings. The full version connects these to your actual tools — so every message is based on real data, not guesswork.
+
+Smart Check-ins
+Your bot checks in with context from your email, calendar, tasks, and goals. It might say: “You have a meeting with Sarah in 30 minutes. Three unread emails from her — want a summary?” Or at 6pm: “Two tasks still open. The proposal is due tomorrow — work on it now or morning reminder?”
+
+Morning Briefings
+One Telegram message with today’s meetings, urgent emails, overdue tasks, and approaching deadlines. Read it over coffee and know exactly what your day looks like — without opening five apps. As you connect more tools, the briefing gets richer automatically.
+
+The Decision Framework
+Your bot does not blast messages on a timer. Every scheduled check-in goes through a decision: Is there something worth saying? Has the user been active? Is a deadline approaching? If there is no good reason to reach out, it stays silent.
+
+Result: two or three genuinely useful messages per day. Not noise.
+
+The proactive AI system is actively developed. Community members contribute new triggers and decision logic weekly. Join the Autonomee community to be part of it.
+
+
+Autonomee
+
+Course / Telegram Bot Course / Module 10 – Tool Integrations
+Module 10 – Tool Integrations
+~10 min read
+10 // TOOL INTEGRATIONS
+Connect Your AI to the Tools You Actually Use
+A standalone AI is interesting. An AI plugged into your real tools? That is when it becomes your actual assistant.
+
+Your bot connects to your email, calendar, project management, file storage — whatever you use. Through a single Telegram conversation, you can read emails, check your schedule, update tasks, and take action.
+
+You are not locked into specific tools. Connect whatever you already use. Some examples from community members:
+
+Email — read, search, draft replies, send on your behalf
+Calendar — check schedule, find free time, create events
+Project management — query tasks, create entries, get overviews
+Documents — search, create, organize
+Databases — query data, generate reports
+If a tool has an API, your bot can probably connect to it. The ecosystem grows every week.
+
+Image Memory
+Send a photo and your bot stores it permanently with an AI-generated description. Whiteboard after a brainstorm. Screenshot of an error. Receipt. Business card. Ask about it weeks later — it finds it by meaning, not filename.
+
+Confirmation Before Acting
+Before your bot sends an email, updates a task, or modifies a document — it asks first. Inline buttons in Telegram. One tap to approve or reject. You are always in control.
+
+Community members are constantly sharing new tool connections. The Autonomee community is where you find out what is possible.
+
+
+Autonomee
+
+Course / Telegram Bot Course / Module 11 – Multi-Agent System
+Module 11 – Multi-Agent System
+~10 min read
+11 // MULTI-AGENT SYSTEM
+Your Personal Board of Directors
+A generalist AI is decent at everything but exceptional at nothing. In this module, you stop treating your bot like one tool and start building it as a team.
+
+Six specialized agents, each with a different reasoning framework backed by AI research. You do not get one brain. You get six.
+
+General (Orchestrator) — your default assistant, coordinates between agents
+Research — deep information gathering, competitor analysis, market intelligence
+Content (CMO) — video packaging, titles, thumbnails, audience growth
+Finance (CFO) — ROI analysis, unit economics, deal evaluation
+Strategy (CEO) — long-term decisions, roadmaps, pivots
+Critic (Devil’s Advocate) — stress-tests everything, finds the holes in your plan
+Group Chat with Topics
+In Telegram, each agent gets its own topic in a group chat. Message the Research topic, the Research agent answers. Each agent maintains its own context and builds expertise over time.
+
+Board Meetings
+Facing a big decision? Tell the General agent to run a board meeting. Research analyzes the market. Finance models the numbers. Content evaluates positioning. Strategy maps long-term implications. The Critic finds every reason it could fail. Then the General agent synthesizes everything into one recommendation.
+
+Six perspectives. Six reasoning styles. One decision — made with far more rigor than any single AI could provide.
+
+Agents Consult Each Other
+Strategy can pull in Finance to check numbers. Content can ask Research for trending data. The Critic reviews everything. Cross-consultation within defined boundaries — useful, not chaotic.
+
+Community members are creating custom agents for their specific industries. The Autonomee community is where you learn to build agents tailored to your work.
+
+
+
+Autonomee
+
+Course / Telegram Bot Course / Module 12 – Production Deployment
+Module 12 – Production Deployment
+~10 min read
+12 // PRODUCTION DEPLOYMENT
+Your Bot, Always On
+Up until now, your bot only works when your computer is on. In this module, you deploy it to a server so it runs 24/7 — while you sleep, travel, or close your laptop.
+
+What You Need
+A VPS — Recommended: Hostinger (promo code: GODAGO), ~$5/mo. Alternatives: DigitalOcean, Hetzner, Linode, Vultr. Any Linux server with SSH works.
+An Anthropic API key — From console.anthropic.com. Pay per use. Start with $10–20.
+A domain or static IP — Telegram needs a URL for webhooks.
+Three Ways to Run It
+Local Only. Runs on your computer using Claude Code with your Pro ($20/mo, good to start) or Max ($100-200/mo, full power) subscription. When your computer sleeps, your bot sleeps. Best for trying it out.
+
+VPS Only. Runs on a cloud server 24/7. Full mode gives you all tools and integrations. Fast mode responds in 2–5 seconds with fewer integrations. Both need an API key, no subscription. Cost: ~$5/mo server + $5–30/mo API.
+
+Hybrid (Recommended). Server catches messages 24/7. When your machine is awake, it forwards there for free subscription processing. When it sleeps, the server handles it via API. Cost: $20/mo subscription + ~$5/mo server + $1–5/mo API. Start local and add VPS later — nothing needs rebuilding.
+
+ToS Note (Updated February 20, 2026): Local mode uses the official Claude Code CLI — you’re running Anthropic’s own product on your own computer, nothing changes. VPS and Hybrid modes use standard Anthropic API keys under the Commercial Terms, which is the recommended path for any production or always-on deployment. GoBot’s smart routing (Haiku for simple queries, Sonnet for medium, Opus for complex) keeps API costs manageable. In January 2026, Anthropic shut down tools that extracted OAuth tokens from subscriptions to use in their own API clients. GoBot never does this — it calls claude -p (the real CLI) and uses official API keys. On February 19, 2026, Anthropic also clarified that the Agent SDK requires API key authentication. For the latest on authentication policies, check Anthropic’s Legal and Compliance page.
+
+Cost Management
+Messages route automatically to the right model tier based on complexity. Simple questions use the cheapest model. Complex tasks use the most capable. Costs drop 50–60%. You set a daily budget — no surprise bills.
+
+Fallback AI Chain
+If Claude goes down, the bot falls back to OpenRouter. If that is down too, it uses a local model on your machine. Seamless. You might not notice it happened.
+
+Auto-Deploy and Agent SDK
+Updates push automatically from GitHub — new features appear without manual work. The Agent SDK lets you build custom agents on top of the full infrastructure. Community members are already creating agents for their specific workflows.
+
+The Autonomee community is where you get help with deployment and stay updated as new features roll out.
+
+
+Impressum
+
+
+
+
+
+
+
