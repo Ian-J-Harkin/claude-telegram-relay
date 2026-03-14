@@ -77,6 +77,9 @@ Since we bypassed Claude Code for a more direct integration, these features are 
 3. **Model tier routing** — currently we use `gemini-2.5-flash` for everything. Only add Pro routing if you start hitting quality limits on complex prompts.
 4. **Git simplifies deploys** — with the repo on GitHub, you can just `git pull && pm2 restart` on the VPS. The deploy script mainly automates first-time setup.
 
+### Housekeeping
+- [ ] **Remove temporary planning files from repo** — `corrected_deployment_text.md` and `More implmentation plans.txt` are checked in for now but should be removed (or moved to `.gitignore`) once their content has been finalized and incorporated into course materials or proper docs.
+
 --- 
 
 ## MANUAL TESTING CHECKLIST
